@@ -1,0 +1,47 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:15
+    container_name: medplum-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: medplum
+      POSTGRES_PASSWORD: medplum
+      POSTGRES_DB: medplum
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: medplum-redis
+    restart: always
+    command: ["redis-server", "--requirepass", "medplumredis"]
+    ports:
+      - "6379:6379"
+
+  medplum-server:
+    image: medplum/medplum-server:latest
+    container_name: medplum-server
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - ./medplum.config.json:/usr/src/medplum/packages/server/medplum.config.json:ro
+    ports:
+      - "8103:8103"
+
+  medplum-app:
+    image: medplum/medplum-app:latest
+    container_name: medplum-app
+    depends_on:
+      - medplum-server
+    environment:
+      MEDPLUM_BASE_URL: http://localhost:8103
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:
+
